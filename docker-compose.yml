@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codemate_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - codemate-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: codemate_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - codemate-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: codemate_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: codemate
+      POSTGRES_USER: codemate
+      POSTGRES_PASSWORD: codemate_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - codemate-network
+
+networks:
+  codemate-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+
