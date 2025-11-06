@@ -1,59 +1,228 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Codemate - Приложение для работы с балансом пользователей
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API приложение для управления балансом пользователей с поддержкой операций зачисления, списания и переводов между пользователями.
 
-## About Laravel
+## Требования
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+-   PHP 8.2+
+-   Docker и Docker Compose
+-   PostgreSQL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Установка и запуск
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Клонируйте репозиторий:
 
-## Learning Laravel
+```bash
+git clone <repository-url>
+cd codemate
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+2. Скопируйте `.env.example` в `.env` (если нужно):
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+cp .env.example .env
+```
 
-## Laravel Sponsors
+3. Запустите Docker контейнеры:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+docker compose up -d
+```
 
-### Premium Partners
+4. Установите зависимости:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+docker compose exec app composer install
+```
 
-## Contributing
+5. Сгенерируйте ключ приложения:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+docker compose exec app php artisan key:generate
+```
 
-## Code of Conduct
+6. Выполните миграции:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+docker compose exec app php artisan migrate
+```
 
-## Security Vulnerabilities
+7. Приложение будет доступно по адресу: `http://localhost:8080`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## API Endpoints
 
-## License
+### 1. Начисление средств пользователю
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**POST** `/api/deposit`
+
+```json
+{
+    "user_id": 1,
+    "amount": 500.0,
+    "comment": "Пополнение через карту"
+}
+```
+
+**Ответ (200):**
+
+```json
+{
+    "user_id": 1,
+    "balance": 500.0
+}
+```
+
+### 2. Списание средств
+
+**POST** `/api/withdraw`
+
+```json
+{
+    "user_id": 1,
+    "amount": 200.0,
+    "comment": "Покупка подписки"
+}
+```
+
+**Ответ (200):**
+
+```json
+{
+    "user_id": 1,
+    "balance": 300.0
+}
+```
+
+**Ошибка (409) - недостаточно средств:**
+
+```json
+{
+    "message": "Insufficient funds"
+}
+```
+
+### 3. Перевод между пользователями
+
+**POST** `/api/transfer`
+
+```json
+{
+    "from_user_id": 1,
+    "to_user_id": 2,
+    "amount": 150.0,
+    "comment": "Перевод другу"
+}
+```
+
+**Ответ (200):**
+
+```json
+{
+    "from_user_id": 1,
+    "to_user_id": 2,
+    "from_balance": 150.0,
+    "to_balance": 150.0
+}
+```
+
+**Ошибка (409) - недостаточно средств:**
+
+```json
+{
+    "message": "Insufficient funds"
+}
+```
+
+### 4. Получение баланса пользователя
+
+**GET** `/api/balance/{user_id}`
+
+**Ответ (200):**
+
+```json
+{
+    "user_id": 1,
+    "balance": 350.0
+}
+```
+
+**Ошибка (404) - пользователь не найден:**
+
+```json
+{
+    "message": "User not found"
+}
+```
+
+## Коды ошибок
+
+-   **200** - Успешный ответ
+-   **400/422** - Ошибки валидации
+-   **404** - Пользователь не найден
+-   **409** - Конфликт (недостаточно средств)
+
+## База данных
+
+Проект использует PostgreSQL. Структура базы данных:
+
+-   **users** - пользователи системы
+-   **balances** - балансы пользователей (создаётся автоматически при первом пополнении)
+-   **transactions** - история транзакций с типами: `deposit`, `withdraw`, `transfer_in`, `transfer_out`
+
+## Особенности реализации
+
+-   Все денежные операции выполняются в транзакциях БД
+-   Баланс не может быть отрицательным
+-   Используется блокировка строк (`lockForUpdate`) для предотвращения race conditions
+-   Автоматическое создание записи баланса при первом пополнении
+-   Все ответы и ошибки в формате JSON
+
+## Тестирование
+
+Запуск тестов:
+
+```bash
+docker compose exec app php artisan test
+```
+
+## Структура проекта
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   └── BalanceController.php
+│   └── Requests/
+│       ├── DepositRequest.php
+│       ├── WithdrawRequest.php
+│       └── TransferRequest.php
+├── Models/
+│   ├── Balance.php
+│   ├── Transaction.php
+│   └── User.php
+└── Services/
+    └── BalanceService.php
+```
+
+## Разработка
+
+Для разработки можно использовать команды:
+
+```bash
+# Войти в контейнер PHP
+docker compose exec app bash
+
+# Выполнить миграции
+docker compose exec app php artisan migrate
+
+# Запустить тесты
+docker compose exec app php artisan test
+
+# Очистить кэш
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan config:clear
+```
+
+## Лицензия
+
+MIT License
